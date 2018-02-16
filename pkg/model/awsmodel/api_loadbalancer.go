@@ -228,6 +228,19 @@ func (b *APILoadBalancerBuilder) Build(c *fi.ModelBuilderContext) error {
 		masterKeypair.AlternateNameTasks = append(masterKeypair.AlternateNameTasks, elb)
 	}
 
+	masterPublicName := b.Cluster.Spec.MasterPublicName
+	if masterPublicName != "" && !dns.IsGossipHostname(masterPublicName) {
+		t := &awstasks.DNSName{
+			Name:      s(masterPublicName),
+			Lifecycle: b.Lifecycle,
+
+			Zone:               b.LinkToDNSZone(),
+			ResourceType:       s("A"),
+			TargetLoadBalancer: elb,
+		}
+		c.AddTask(t)
+	}
+
 	for _, ig := range b.MasterInstanceGroups() {
 		t := &awstasks.LoadBalancerAttachment{
 			Name:      s("api-" + ig.ObjectMeta.Name),

@@ -35,7 +35,9 @@ type DNSModelBuilder struct {
 var _ fi.ModelBuilder = &DNSModelBuilder{}
 
 func (b *DNSModelBuilder) ensureDNSZone(c *fi.ModelBuilderContext) error {
-	if dns.IsGossipHostname(b.Cluster.Name) {
+	topology := b.Cluster.Spec.Topology
+	if dns.IsGossipHostname(b.Cluster.Name) &&
+		(topology != nil && topology.Bastion != nil && dns.IsGossipHostname(topology.Bastion.BastionPublicName)) {
 		return nil
 	}
 
@@ -45,7 +47,6 @@ func (b *DNSModelBuilder) ensureDNSZone(c *fi.ModelBuilderContext) error {
 		Lifecycle: b.Lifecycle,
 	}
 
-	topology := b.Cluster.Spec.Topology
 	if topology != nil && topology.DNS != nil {
 		switch topology.DNS.Type {
 		case kops.DNSTypePublic:

@@ -108,6 +108,9 @@ type CreateClusterOptions struct {
 	// Enable/Disable Bastion Host complete setup
 	Bastion bool
 
+	// Allow custom bastion public name
+	BastionPublicName string
+
 	// Specify tags for AWS instance groups
 	CloudLabels string
 
@@ -316,6 +319,8 @@ func NewCmdCreateCluster(f *util.Factory, out io.Writer) *cobra.Command {
 
 	// Bastion
 	cmd.Flags().BoolVar(&options.Bastion, "bastion", options.Bastion, "Pass the --bastion flag to enable a bastion instance group. Only applies to private topology.")
+	// Allow custom public bastion name
+	cmd.Flags().StringVar(&options.BastionPublicName, "bastion-public-name", options.BastionPublicName, "Sets the public bastion name")
 
 	// Allow custom tags from the CLI
 	cmd.Flags().StringVar(&options.CloudLabels, "cloud-labels", options.CloudLabels, "A list of KV pairs used to tag all instance groups in AWS (eg \"Owner=John Doe,Team=Some Team\").")
@@ -949,10 +954,13 @@ func RunCreateCluster(f *util.Factory, out io.Writer, c *CreateClusterOptions) e
 			bastionGroup.Spec.Image = c.Image
 			instanceGroups = append(instanceGroups, bastionGroup)
 
-			cluster.Spec.Topology.Bastion = &api.BastionSpec{
+			bastionSpec := &api.BastionSpec{
 				BastionPublicName: "bastion." + clusterName,
 			}
-
+			if c.BastionPublicName != "" {
+				bastionSpec.BastionPublicName = c.BastionPublicName
+			}
+			cluster.Spec.Topology.Bastion = bastionSpec
 		}
 
 	default:

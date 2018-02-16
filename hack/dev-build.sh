@@ -81,6 +81,13 @@ KOPS_CREATE=${KOPS_CREATE:-yes}
 # NETWORK
 TOPOLOGY=${TOPOLOGY:-private}
 NETWORKING=${NETWORKING:-weave}
+BASTION_PUBLIC_NAME=${BASTION_PUBLIC_NAME:-}
+DNS_ZONE=${DNS_ZONE:-}
+
+if [[ -n $BASTION_PUBLIC_NAME ]] && [[ -z $DNS_ZONE ]]; then
+  echo "If using BASTION_PUBLIC_NAME, you need to also specify DNS_ZONE"
+  exit 1
+fi
 
 # How verbose go logging is
 VERBOSITY=${VERBOSITY:-10}
@@ -95,7 +102,7 @@ echo "Starting build"
 
 # removing CI=1 because it forces a new upload every time
 # export CI=1
-make && S3_BUCKET=s3://${NODEUP_BUCKET} make upload
+#make && S3_BUCKET=s3://${NODEUP_BUCKET} make upload
 
 # removing make test since it relies on the files in the bucket
 # && make test
@@ -122,6 +129,10 @@ kops_command="NODEUP_URL=${KOPS_BASE_URL}linux/amd64/nodeup KOPS_BASE_URL=${KOPS
 
 if [[ $TOPOLOGY == "private" ]]; then
   kops_command+=" --bastion='true'"
+fi
+
+if [[ -n $BASTION_PUBLIC_NAME ]]; then
+  kops_command+=" --bastion-public-name=$BASTION_PUBLIC_NAME --dns-zone=$DNS_ZONE"
 fi
 
 if [ -n "${KOPS_FEATURE_FLAGS+x}" ]; then 
