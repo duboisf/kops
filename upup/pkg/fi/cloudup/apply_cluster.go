@@ -130,6 +130,9 @@ type ApplyClusterCmd struct {
 	LifecycleOverrides map[string]fi.Lifecycle
 }
 
+func allGossipNames(names ...string) bool {
+	
+}
 func (c *ApplyClusterCmd) Run() error {
 	if c.MaxTaskDuration == 0 {
 		c.MaxTaskDuration = DefaultMaxTaskDuration
@@ -438,7 +441,13 @@ func (c *ApplyClusterCmd) Run() error {
 
 	modelContext.Region = region
 
-	if dns.IsGossipHostname(cluster.ObjectMeta.Name) {
+	topology := cluster.Spec.Topology
+	masterPublicName := cluster.Spec.MasterPublicName
+	var bastionPublicName string
+	if topology.Bastion != nil && topology.Bastion.BastionPublicName != "" {
+		bastionPublicName = &topology.Bastion.BastionPublicName
+	}
+	if dns.IsGossipHostname(cluster.ObjectMeta.Name) && dns.IsGossipHostname(masterPublicName) {
 		glog.Infof("Gossip DNS: skipping DNS validation")
 	} else {
 		err = validateDNS(cluster, cloud)

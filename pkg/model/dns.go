@@ -35,6 +35,9 @@ type DNSModelBuilder struct {
 var _ fi.ModelBuilder = &DNSModelBuilder{}
 
 func (b *DNSModelBuilder) ensureDNSZone(c *fi.ModelBuilderContext) error {
+	if b.NameForDNSZone() == "" {
+		return fmt.Errorf("Want to update DNS but missing `spec.dnsZone` in the cluster spec")
+	}
 	// Configuration for a DNS zone
 	dnsZone := &awstasks.DNSZone{
 		Name:      s(b.NameForDNSZone()),
@@ -69,21 +72,9 @@ func (b *DNSModelBuilder) ensureDNSZone(c *fi.ModelBuilderContext) error {
 
 func (b *DNSModelBuilder) Build(c *fi.ModelBuilderContext) error {
 	// Add a HostedZone if we are going to publish a dns record that depends on it
-	if b.UsePrivateDNS() {
-		// Check to see if we are using a bastion DNS record that points to the hosted zone
-		// If we are, we need to make sure we include the hosted zone as a task
-
+	if !dns.IsGossipHostname(b.Cluster.Name) {
 		if err := b.ensureDNSZone(c); err != nil {
 			return err
-		}
-	} else {
-		// We now create the DNS Zone for AWS even in the case of public zones;
-		// it has to exist for the IAM record anyway.
-		// TODO: We can now rationalize the code paths
-		if !dns.IsGossipHostname(b.Cluster.Name) {
-			if err := b.ensureDNSZone(c); err != nil {
-				return err
-			}
 		}
 	}
 
